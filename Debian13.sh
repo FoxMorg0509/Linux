@@ -36,14 +36,23 @@ hostnamectl set-hostname "$NEW_HOSTNAME"
 sed -i "s/127.0.1.1.*/127.0.1.1\t$NEW_HOSTNAME/g" /etc/hosts
 
 # 4. 交互式修改 ROOT 密码
-echo ">>> 修改 Root 用户密码..."
+echo ">>> 正在检查文件系统状态并修改 Root 密码..."
+mount -o remount,rw /          # 强制读写模式
+chattr -i /etc/shadow 2>/dev/null # 解除可能的文件锁定
+
 while true; do
     passwd root
     if [ $? -eq 0 ]; then
         echo "密码修改成功！"
         break
     else
-        echo "密码修改失败，请重试。"
+        echo "-------------------------------------------"
+        echo " 错误: 密码修改失败！"
+        echo " 可能原因: 输入不一致 或 文件系统权限问题。"
+        echo " 尝试执行 'mount -o remount,rw /' 后再次运行脚本。"
+        echo "-------------------------------------------"
+        read -p "是否再次尝试修改密码? (y/n): " RETRY
+        [[ "$RETRY" =~ ^[nN]$ ]] && break
     fi
 done
 
